@@ -20,5 +20,7 @@ func Router() *echo.Echo {
 	r.GET("/health", handler.Health)
 	r.POST("/user.create", handler.CreateUser)
 
+	r.GET("/attest", handler.Attest)
+
 	return r
 }
