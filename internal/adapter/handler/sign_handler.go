@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -24,6 +25,8 @@ func Attest(c echo.Context) error {
 	rpcUrl := os.Getenv(`RPC_URL`)
 	fmt.Printf("RPC " + rpcUrl)
 	org := c.QueryParam("org")
+
+	fmt.Printf("ORG" + org)
 
 	err := createNotaryAttestation(org)
 	if err != nil {
@@ -90,6 +93,12 @@ func createNotaryAttestation(orgName string) error {
 
 	recipientAddress := "0x8244c1645C1a7890Ef1F0E79AcCf817905Dbcba2"
 
+	encodedData, err := encodeSchemaData(orgName)
+
+	if err != nil {
+		return fmt.Errorf("Failed to encode data: " + err.Error())
+	}
+
 	// Create the attestation
 	attestation := contract.Attestation{
 		SchemaId:            uint64(0x400),
@@ -101,7 +110,7 @@ func createNotaryAttestation(orgName string) error {
 		DataLocation:        0,
 		Revoked:             false,
 		Recipients:          [][]byte{common.HexToAddress(recipientAddress).Bytes()},
-		Data:                []byte(orgName),
+		Data:                encodedData,
 	}
 
 	// Set up resolver fees parameters
@@ -136,4 +145,24 @@ func createNotaryAttestation(orgName string) error {
 
 	log.Printf("Attestation created successfully!")
 	return nil
+}
+
+func encodeSchemaData(org string) ([]byte, error) {
+	// Define the arguments and their types
+	arguments := abi.Arguments{
+		{
+			Type: abi.Type{
+				T: abi.StringTy,
+			},
+		},
+	}
+
+	// Convert signer string to address
+	// Pack the values
+	encoded, err := arguments.Pack(org)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode schema data: %v", err)
+	}
+
+	return encoded, nil
 }
